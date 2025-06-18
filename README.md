@@ -30,6 +30,12 @@ b = [30.0]     # Galactic latitude in degrees
 d = [1.5]      # Distance in kpc
 
 EBV, dust, sigma, max_d = dustmaps3d(l, b, d)
+
+print(f"EBV: {EBV.iloc[0]:.4f} [mag]")
+print(f"Dust: {dust.iloc[0]:.4f} [mag/kpc]")
+print(f"Sigma: {sigma[0]:.4f} [mag]")
+print(f"Max distance: {max_d.iloc[0]:.4f} kpc")
+
 ```
 
 ---

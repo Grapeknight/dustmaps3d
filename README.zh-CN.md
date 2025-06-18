@@ -30,6 +30,12 @@ b = [30.0]     # 银纬，单位：度
 d = [1.5]      # 距离，单位：kpc
 
 EBV, dust, sigma, max_d = dustmaps3d(l, b, d)
+
+print(f"EBV: {EBV.iloc[0]:.4f} [mag]")
+print(f"Dust: {dust.iloc[0]:.4f} [mag/kpc]")
+print(f"Sigma: {sigma[0]:.4f} [mag]")
+print(f"Max distance: {max_d.iloc[0]:.4f} kpc")
+
 ```
 
 ---
