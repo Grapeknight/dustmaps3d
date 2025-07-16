@@ -1,13 +1,18 @@
+**阅读语言：[English](README.md) | [中文](README.zh-CN.md)**
+
 # dustmaps3d
 
-**🌌 基于 Gaia 和 LAMOST 的全天三维尘埃消光图**
+🌌 **一份基于 Gaia 和 LAMOST 构建的全天空三维尘埃消光图**
 
-📄 *Wang et al. (2025),* *An all-sky 3D dust map based on Gaia and LAMOST* 
+📄 *Wang et al. (2025)，An all-sky 3D dust map based on Gaia and LAMOST*  
 📌 DOI: [10.12149/101620](https://doi.org/10.12149/101620)
+
+📦 *一个用于便捷访问 3D 尘埃图的 Python 包*  
+📌 DOI: [10.12149/101619](https://nadc.china-vo.org/res/r101619/)
 
 ---
 
-## 📦 安装方式
+## 📦 安装
 
 通过 pip 安装：
 
@@ -15,8 +20,10 @@
 pip install dustmaps3d
 ```
 
-⚠️ 安装时不会包含模型数据文件。  
-首次运行时程序将自动从 GitHub 下载约 700MB 的模型数据（`data_v2.parquet`），无需手动下载。
+**注意：** 安装包本身并不包含模型数据。  
+约 350MB 的数据文件将在**首次使用时自动从 GitHub 下载**。  
+⚠️ 若遇到网络连接问题，也可从 NADC 手动下载数据：  
+🔗 https://nadc.china-vo.org/res/r101619/
 
 ---
 
@@ -25,74 +32,94 @@ pip install dustmaps3d
 ```python
 from dustmaps3d import dustmaps3d
 
-l = [120.0]    # 银经，单位：度
-b = [30.0]     # 银纬，单位：度
-d = [1.5]      # 距离，单位：kpc
+l = [120.0]
+b = [30.0]
+d = [1.5]
 
 EBV, dust, sigma, max_d = dustmaps3d(l, b, d)
 
-print(f"EBV: {EBV.iloc[0]:.4f} [mag]")
-print(f"Dust: {dust.iloc[0]:.4f} [mag/kpc]")
+print(f"EBV: {EBV[0]:.4f} [mag]")
+print(f"Dust: {dust[0]:.4f} [mag/kpc]")
 print(f"Sigma: {sigma[0]:.4f} [mag]")
-print(f"Max distance: {max_d.iloc[0]:.4f} kpc")
+print(f"Max distance: {max_d[0]:.4f} kpc")
+```
 
+**FITS 文件批量处理示例：**
+
+```python
+import numpy as np
+from astropy.io import fits
+from astropy.table import Table
+from dustmaps3d import dustmaps3d
+
+data = Table.read('input.fits')
+l = data['l'].astype(float)
+b = data['b'].astype(float)
+d = data['distance'].astype(float)
+
+EBV, dust, sigma, max_d = dustmaps3d(l, b, d)
+
+data['EBV_3d'] = EBV
+data['dust'] = dust
+data['sigma'] = sigma
+data['max_distance'] = max_d
+
+data.write('output.fits', overwrite=True)
 ```
 
 ---
 
 ## 🧠 函数说明
 
-### `dustmaps3d(l, b, d)`
+### `dustmaps3d(l, b, d, n_process=None)`
 
-用于估算三维星际消光与相关物理量。
+根据输入的银河坐标 `(l, b)` 和距离 `d`，返回对应的尘埃消光信息。
 
-| 输入变量 | 类型           | 含义             | 单位       |
-|----------|----------------|------------------|------------|
-| `l`      | float / array  | 银经             | 度         |
-| `b`      | float / array  | 银纬             | 度         |
-| `d`      | float / array  | 日心距离         | kpc        |
+| 输入         | 类型         | 描述                        | 单位     |
+|--------------|--------------|-----------------------------|----------|
+| `l`          | np.ndarray   | 银河经                      | 度       |
+| `b`          | np.ndarray   | 银河纬                      | 度       |
+| `d`          | np.ndarray   | 日心距离                    | kpc      |
+| `n_process`  | int, 可选    | 并行处理的进程数量，如设为 None 则默认使用单线程 | – |
 
-#### 返回值：
+#### 返回：
 
-| 输出变量   | 类型   | 含义                                     | 单位       |
-|------------|--------|------------------------------------------|------------|
-| `EBV`      | array  | 积分消光 E(B–V)                          | mag        |
-| `dust`     | array  | E(B–V) 梯度，即尘埃密度近似             | mmag / pc  |
-| `sigma`    | array  | E(B–V) 的估计不确定度                    | mag        |
-| `max_d`    | array  | 本方向上模型可用的最大可靠距离          | kpc        |
+| 输出         | 类型         | 描述                              | 单位     |
+|--------------|--------------|-----------------------------------|----------|
+| `EBV`        | np.ndarray   | E(B–V) 消光值                     | mag      |
+| `dust`       | np.ndarray   | 尘埃密度（d(EBV)/dx）             | mag/kpc  |
+| `sigma`      | np.ndarray   | E(B–V) 的不确定度估计             | mag      |
+| `max_d`      | np.ndarray   | 每条视线方向上可靠的最大距离      | kpc      |
 
-所有输入输出均为 NumPy 数组，标量输入将自动转换为一维数组。
+> 如果输入的 `d` 为 `NaN`，程序将自动替换为该方向上的最大可靠距离。
 
 ---
 
-## ⚡ 计算效率
+## ⚡ 性能
 
-- 向量化实现，支持批量调用
-- 在普通桌面计算机上处理 **1 亿颗恒星** 仅需约 10 分钟
+- 基于 NumPy 完全向量化实现
+- 支持通过 `n_process` 并行处理大批量数据
+- 在普通个人计算机上，处理 **一亿颗恒星** 仅需约 **100 秒**
 
 ---
 
 ## 📂 数据版本
 
-本版本使用 `data_v2.parquet` 文件，首次运行时自动下载。  
-下载地址：[GitHub Releases - v2.0](https://github.com/Grapeknight/dustmaps3d/releases/tag/v2.0)
+当前版本使用数据文件：`data_v2.1.parquet`，来自发布版本 [v2.1](https://github.com/Grapeknight/dustmaps3d/releases/tag/v2.1)
 
 ---
 
-## 📜 引用方式
+## 📜 引用说明
 
-> Wang, T. (2025). *An all-sky 3D dust map based on Gaia and LAMOST.*  
-> DOI: [10.12149/101620](https://doi.org/10.12149/101620)
+如果您在研究中使用了该模型或包，请引用以下两项：
 
-请在正式发表或研究中引用该论文以致谢作者工作。
+- Wang, T. (2025), *An all-sky 3D dust map based on Gaia and LAMOST*  
+  DOI: [10.12149/101620](https://doi.org/10.12149/101620)
+- *dustmaps3d: A Python package for easy access to the 3D dust map*  
+  DOI: [10.12149/101619](https://nadc.china-vo.org/res/r101619/)
 
 ---
 
-## 📫 联系方式
+## 🛠️ 授权协议
 
-如在使用本工具过程中有任何问题、建议或技术交流，欢迎通过 GitHub issue 或邮箱联系作者团队：
-
-- 苑海波 教授: yuanhb@bnu.edu.cn  
-- 王涛: wt@mail.bnu.edu.cn  
-
-🔗 [GitHub Repository](https://github.com/Grapeknight/dustmaps3d)
+MIT License

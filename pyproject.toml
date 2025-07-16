@@ -1,3 +1,31 @@
 [build-system]
 requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "dustmaps3d"
+version = "2.1.0"
+description = "An all-sky 3D dust map based on Gaia and LAMOST."
+readme = "README.md"
+requires-python = ">=3.8"
+license = {text = "BSD-3-Clause"}
+authors = [
+  {name = "Wang Tao", email = "wt@mail.bnu.edu.cn"}
+]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Operating System :: OS Independent"
+]
+dependencies = [
+  "numpy>=1.24.3",
+  "pandas>=2.3.1",
+  "astropy>=7.1.0",
+  "astropy-healpix>=1.0.3",
+  "tqdm>=4.67.1",
+  "pyarrow>=20.0.0",
+  "platformdirs>=3.0"
+
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
