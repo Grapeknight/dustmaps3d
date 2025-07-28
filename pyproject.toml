@@ -43,3 +43,6 @@ Homepage = "https://github.com/Grapeknight/dustmaps3d"
 
 [tool.setuptools.packages.find]
 where = ["."]
+
+[project.scripts]
+dust = "dustmaps3d.cli:main"

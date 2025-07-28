@@ -9,6 +9,7 @@ from astropy_healpix import HEALPix
 from astropy import units as u
 import warnings
 import requests
+from multiprocessing import Pool, cpu_count
 
 warnings.filterwarnings("ignore", category=RuntimeWarning, message="overflow encountered in exp")
 
@@ -253,3 +254,81 @@ def dustmaps3d(l, b, d):
     rows['distance'] = d
     EBV, dust, sigma_finally, max_d = read_map(rows)
     return EBV, dust, sigma_finally, max_d
+
+
+def _process_chunk(df_chunk):
+    """
+    Worker function for multiprocessing. Processes a chunk of the DataFrame.
+    It's defined at the top level of the module to be pickleable.
+    """
+    load_data() 
+    
+    try:
+        ebv, dust, sigma, max_d = dustmaps3d(df_chunk['l'].values, df_chunk['b'].values, df_chunk['d'].values)
+        
+        df_chunk['EBV'] = ebv.values
+        df_chunk['dust'] = dust.values
+        df_chunk['sigma'] = sigma.values
+        df_chunk['max_distance'] = max_d.values
+        
+        return df_chunk
+    except Exception as e:
+        print(f"A worker process failed with an error: {e}")
+        return pd.DataFrame()
+
+
+def dustmaps3d_from_df(df, l_col='l', b_col='b', d_col='d', n_process=8, chunk_size=100_000):
+    """
+    Calculates dust properties for a large dataset in a pandas DataFrame using multiprocessing.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        Input DataFrame containing sky coordinates and distances.
+    l_col : str, optional
+        Column name for Galactic longitude in degrees, by default 'l'.
+    b_col : str, optional
+        Column name for Galactic latitude in degrees, by default 'b'.
+    d_col : str, optional
+        Column name for distance in kpc, by default 'd'.
+    n_process : int, optional
+        Number of parallel processes to use, by default 8.
+    chunk_size : int, optional
+        Number of rows each process handles at a time, by default 100,000.
+
+    Returns
+    -------
+    pd.DataFrame
+        A new DataFrame with calculated dust properties ('EBV', 'dust', 'sigma', 'max_distance') appended.
+    """
+    for col in [l_col, b_col, d_col]:
+        if col not in df.columns:
+            raise ValueError(f"Input DataFrame must contain column '{col}'")
+
+    input_df = df[[l_col, b_col, d_col]].rename(columns={l_col: 'l', b_col: 'b', d_col: 'd'})
+    
+    tasks = [input_df.iloc[i:i + chunk_size] for i in range(0, len(input_df), chunk_size)]
+    
+    results = []
+    print(f"[dustmaps3d] Starting parallel processing with {n_process} cores...")
+    
+    with Pool(processes=n_process) as pool:
+        pbar = tqdm(pool.imap_unordered(_process_chunk, tasks), total=len(tasks), desc="Processing Chunks")
+        for res_chunk in pbar:
+            results.append(res_chunk)
+
+    print("[dustmaps3d] Parallel processing finished. Merging results...")
+    
+    if not results:
+        print("[dustmaps3d] Warning: No results were returned from worker processes.")
+        return df.copy()
+
+    result_df = pd.concat(results).sort_index()
+    
+    final_df = df.copy()
+    final_df['EBV'] = result_df['EBV']
+    final_df['dust'] = result_df['dust']
+    final_df['sigma'] = result_df['sigma']
+    final_df['max_distance'] = result_df['max_distance']
+    
+    return final_df

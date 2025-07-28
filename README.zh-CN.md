@@ -69,6 +69,31 @@ data.write('output.fits', overwrite=True)
 
 ```
 
+**使用 Pandas DataFrame 进行批量处理**
+
+```python
+import pandas as pd
+from dustmaps3d import dustmaps3d_from_df
+
+data = {
+    'l': [120.0, 80.5, 210.1] * 10000000,
+    'b': [30.0, -15.2, 45.5] * 10000000,
+    'd': [1.5, 0.8, 3.0] * 10000000
+}
+df = pd.DataFrame(data)
+
+# 可以自定义每个进程处理的条数 (chunk_size)。
+processed_df = dustmaps3d_from_df(df, n_process=16, chunk_size=100000)
+
+processed_df.to_csv('processed_dustmaps3d.csv', index=False)
+```
+
+**通过命令行使用**
+
+```bash
+dust input.csv output.csv --threads 8
+```
+
 ---
 ## 🧠 函数说明
 
