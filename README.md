@@ -21,37 +21,41 @@ Install via pip:
 pip install dustmaps3d
 ```
 
-## 📦 Data File Notice
+## 📦 Data File Instructions
 
-> ⚠️ The package **does not include the data file**. Upon first use, a ~400MB model file will be automatically downloaded from GitHub or the NADC mirror.
+> ⚠️ The package **does not include the data file**. A ~400MB model file will be automatically downloaded on first use from GitHub or NADC.
 
-### 🚀 Automatic Download Mechanism
+### 🚀 Auto Download Mechanism
 
-- When `dustmaps3d()` is called, the package will attempt to download the file `data_v3.fits.gz`;
-- After the download, the file will be automatically decompressed into `data_v3.fits` and cached locally;
-- Subsequent calls will directly load from the cache without re-downloading.
+- When `dustmaps3d()` is called, it will try to download `data_v3.fits.gz`;
+- After download, it will automatically extract the file to `data_v3.fits` and cache it locally;
+- On future runs, the file will be read from the local cache without re-downloading.
 
-### 🌐 What If the Download Fails?
+- ✅ For international users, the primary source is: [GitHub Releases](https://github.com/Grapeknight/dustmaps3d/releases)
+- 🌀 If GitHub download fails, it will automatically fallback to: [NADC Data Center](https://nadc.china-vo.org/res/file_upload/download?id=51939)
 
-If you're outside China, the default download source is GitHub. However, network issues (like `connect timeout`) may still occur. The package supports fallback to an alternative mirror:
+> On Chinese systems, the order is reversed — NADC is used as the primary source.
 
-- ✅ **Primary source** (international users): [GitHub Releases](https://github.com/Grapeknight/dustmaps3d/releases)
-- 🌀 **Backup source** (Chinese mirror): NADC (currently under review, coming soon)
+---
 
-If both sources fail, you can manually download the data file.
+### 🌐 What if download fails?
 
-### 📥 Manual Download (Recommended for Chinese Users)
+If download fails (e.g. `connect timeout`), you can manually download and place the file in the cache directory:
 
-1. Visit the mirror link (coming soon)
-2. Download the file: `data_v3.fits.gz`
-3. Decompress it into `data_v3.fits`
-4. Place the file in the local cache directory (the location will be printed the first time you run the package)
+1. Visit one of the following links:  
+   🇨🇳 [NADC Data Center (for China)](https://nadc.china-vo.org/res/r101662/)  
+   🌍 [GitHub Releases (global)](https://github.com/Grapeknight/dustmaps3d/releases)
 
-> Example path on Windows:  
+2. Download: `data_v3.fits.gz`
+3. Extract to: `data_v3.fits`
+4. Place the extracted file in the local cache directory (the location is printed on first use)
+
+> Example path (Windows):  
 > `C:\Users\<username>\AppData\Local\dustmaps3d\data_v3.fits`
 
-> Example path on Linux/macOS:  
+> Example path (Linux/macOS):  
 > `/home/<username>/.local/share/dustmaps3d/data_v3.fits`
+ 
 
 ---
 

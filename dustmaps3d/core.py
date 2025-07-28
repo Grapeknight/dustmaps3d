@@ -14,34 +14,100 @@ import shutil
 
 APP_NAME = "dustmaps3d"
 DATA_VERSION = "v3"
-DATA_FILENAME = f"data_{DATA_VERSION}.fits"
-GZ_FILENAME = f"{DATA_FILENAME}.gz"
-NADC_URL = "https://nadc.china-vo.org/res/file_upload/download?id=51931"
+FITS_FILENAME = f"data_{DATA_VERSION}.fits"
+GZ_FILENAME = f"{FITS_FILENAME}.gz"
+
+LOCAL_DATA_PATH = Path(user_data_dir(APP_NAME)) / FITS_FILENAME
+LOCAL_GZ_PATH = LOCAL_DATA_PATH.with_suffix(".fits.gz")
+
 GITHUB_URL = f"https://github.com/Grapeknight/dustmaps3d/releases/download/{DATA_VERSION}/{GZ_FILENAME}"
-LOCAL_DATA_PATH = Path(user_data_dir(APP_NAME)) / DATA_FILENAME
-LOCAL_GZ_PATH = Path(user_data_dir(APP_NAME)) / GZ_FILENAME
+NADC_URL = "https://nadc.china-vo.org/res/file_upload/download?id=51939"
+
+# === 所有打印内容集中管理 ===
+MESSAGES = {
+    "start_download": {
+        "zh": "[dustmaps3d] 检测到您第一次使用，需要下载数据文件，正在下载 {file} (~400MB)...",
+        "en": "[dustmaps3d] Downloading {file} (~400MB)..."
+    },
+    "try_primary": {
+        "zh": "[dustmaps3d] 检测到您是国内用户，使用国家天文数据中心 NADC 作为下载源，并且切换输出语言为中文。",
+        "en": "[dustmaps3d] Trying primary source (GitHub)..."
+    },
+    "try_backup": {
+        "zh": "[dustmaps3d] NADC 下载失败，这很奇怪，建议检查下网络，我先尝试从备用源（GitHub）下载。",
+        "en": "[dustmaps3d] Primary source failed. Trying backup (NADC)..."
+    },
+    "start_url": {
+        "zh": "[dustmaps3d] 开始下载: {url}",
+        "en": "[dustmaps3d] Starting download from: {url}"
+    },
+    "download_failed": {
+        "zh": "[dustmaps3d] 下载失败 (第 {i}/{n} 次): {error}",
+        "en": "[dustmaps3d] Download failed (attempt {i}/{n}): {error}"
+    },
+    "download_success": {
+        "zh": "[dustmaps3d] ✅ 已保存数据到: {path}",
+        "en": "[dustmaps3d] ✅ Data has been saved to: {path}"
+    },
+    "extracting": {
+        "zh": "[dustmaps3d] 正在解压 {path} ...",
+        "en": "[dustmaps3d] Extracting {path} ..."
+    },
+    "uncompressed": {
+        "zh": "[dustmaps3d] ✅ 已解压到: {path}",
+        "en": "[dustmaps3d] ✅ Uncompressed to: {path}"
+    },
+    "gzip_invalid": {
+        "zh": "[dustmaps3d] ❌ 下载的文件不是合法的 gzip 格式，可能是错误页面",
+        "en": "[dustmaps3d] ❌ Downloaded file is not a valid gzip file. Possibly an error page."
+    },
+    "fits_invalid": {
+        "zh": "[dustmaps3d] 无效 FITS 文件: {error}",
+        "en": "[dustmaps3d] Invalid FITS file: {error}"
+    },
+    "fits_still_invalid": {
+        "zh": "[dustmaps3d] 解压后文件仍无效，已清除缓存",
+        "en": "[dustmaps3d] Downloaded file is still invalid after extraction. Cache cleared."
+    },
+    "cleanup": {
+        "zh": "[dustmaps3d] 🧹 已清空缓存目录: {folder}",
+        "en": "[dustmaps3d] 🧹 Cleaned all files in: {folder}"
+    },
+    "data_ready": {
+        "zh": "[dustmaps3d] ✅ 数据准备完毕，路径: {path}",
+        "en": "[dustmaps3d] ✅ Data ready at: {path}"
+    }
+}
+
 
 def load_data():
-    def is_china_user():
+    def is_chinese():
         try:
             lang, _ = locale.getdefaultlocale()
             return lang and lang.startswith("zh")
         except:
             return False
 
+    def say(key, **kwargs):
+        lang = "zh" if is_chinese() else "en"
+        print(MESSAGES[key][lang].format(**kwargs))
+
     def cleanup():
-        for f in LOCAL_DATA_PATH.parent.glob("*"):
-            try:
-                f.unlink()
-            except Exception:
-                pass
+        try:
+            folder = LOCAL_DATA_PATH.parent
+            if folder.exists():
+                for f in folder.glob("*"):
+                    f.unlink()
+                say("cleanup", folder=folder)
+        except Exception as e:
+            print(f"[dustmaps3d] Cleanup failed: {e}")
 
     def is_fits_valid(path):
         try:
             df = Table.read(path).to_pandas()
             return "max_distance" in df.columns and df.shape[0] > 100_000
         except Exception as e:
-            print(f"[dustmaps3d] Invalid FITS file: {e}")
+            say("fits_invalid", error=e)
             return False
 
     def is_valid_gzip(path):
@@ -54,16 +120,15 @@ def load_data():
     def download_with_resume(url, path, max_retries=10, chunk_size=1024 * 1024):
         path.parent.mkdir(parents=True, exist_ok=True)
         temp_file = path.with_suffix(".part")
+        say("start_url", url=url)
 
-        print(f"[dustmaps3d] Starting download from: {url}")
-        for attempt in range(1, max_retries + 1):
+        for i in range(1, max_retries + 1):
             try:
                 existing = temp_file.stat().st_size if temp_file.exists() else 0
                 headers = {"Range": f"bytes={existing}-"} if existing else {}
 
                 with requests.get(url, stream=True, headers=headers, timeout=30) as r:
                     if existing and r.status_code != 206:
-                        print("[dustmaps3d] Server didn't support resume. Restarting.")
                         temp_file.unlink(missing_ok=True)
                         return download_with_resume(url, path, max_retries)
 
@@ -82,59 +147,57 @@ def load_data():
                                 bar.update(len(chunk))
                 break
             except Exception as e:
-                print(f"[dustmaps3d] Download failed (attempt {attempt}/{max_retries}): {e}")
+                say("download_failed", i=i, n=max_retries, error=e)
         else:
             raise RuntimeError("[dustmaps3d] Failed to download after multiple attempts.")
 
         temp_file.rename(path)
-        print(f"[dustmaps3d] ✅ Data has been saved to: {path}")
+        say("download_success", path=path)
 
     # === 主逻辑 ===
     if not LOCAL_DATA_PATH.exists() or not is_fits_valid(LOCAL_DATA_PATH):
-        print(f"[dustmaps3d] Downloading {GZ_FILENAME} (~400MB)...")
+        say("start_download", file=GZ_FILENAME)
         cleanup()
 
-        primary_url = NADC_URL if is_china_user() else GITHUB_URL
-        backup_url = GITHUB_URL if is_china_user() else NADC_URL
+        # 👇 判断系统语言决定下载顺序
+        if is_chinese():
+            primary_url, backup_url = NADC_URL, GITHUB_URL
+        else:
+            primary_url, backup_url = GITHUB_URL, NADC_URL
 
-        # 先试主源
         try:
-            print("[dustmaps3d] Trying primary source...")
+            say("try_primary")
             download_with_resume(primary_url, LOCAL_GZ_PATH)
         except Exception as e1:
-            print("[dustmaps3d] Primary source failed. Trying backup...")
+            say("try_backup")
             cleanup()
             try:
                 download_with_resume(backup_url, LOCAL_GZ_PATH)
             except Exception as e2:
                 cleanup()
-                raise RuntimeError(
-                    f"[dustmaps3d] Failed to download from both sources.\n"
-                    f"Primary: {e1}\nBackup: {e2}"
-                )
+                raise RuntimeError(f"[dustmaps3d] Failed to download.\nPrimary: {e1}\nBackup: {e2}")
 
-        # 解压前检查是否为合法 gzip 文件
         if not is_valid_gzip(LOCAL_GZ_PATH):
             cleanup()
-            raise RuntimeError(f"[dustmaps3d] ❌ Downloaded file is not a valid gzip file. Possibly an error page.")
+            raise RuntimeError(MESSAGES["gzip_invalid"]["zh" if is_chinese() else "en"])
 
-        # 解压 .gz 文件为 .fits
         try:
-            print(f"[dustmaps3d] Extracting {LOCAL_GZ_PATH} ...")
+            say("extracting", path=LOCAL_GZ_PATH)
             with gzip.open(LOCAL_GZ_PATH, 'rb') as f_in, open(LOCAL_DATA_PATH, 'wb') as f_out:
                 shutil.copyfileobj(f_in, f_out)
             LOCAL_GZ_PATH.unlink()
-            print(f"[dustmaps3d] ✅ Uncompressed to: {LOCAL_DATA_PATH}")
+            say("uncompressed", path=LOCAL_DATA_PATH)
         except Exception as e:
             raise RuntimeError(f"[dustmaps3d] Failed to decompress file: {e}")
 
-        # 解压后再次验证
         if not is_fits_valid(LOCAL_DATA_PATH):
             cleanup()
-            raise RuntimeError("[dustmaps3d] Downloaded file is still invalid after extraction.")
+            raise RuntimeError(MESSAGES["fits_still_invalid"]["zh" if is_chinese() else "en"])
 
-    # 读取
+        say("data_ready", path=LOCAL_DATA_PATH)
+
     return Table.read(LOCAL_DATA_PATH).to_pandas()
+
 
 
 warnings.filterwarnings("ignore", category=RuntimeWarning, message="overflow encountered in exp")
