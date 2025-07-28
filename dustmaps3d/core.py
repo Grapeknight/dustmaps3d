@@ -1,5 +1,4 @@
 from pathlib import Path
-from functools import lru_cache
 import pandas as pd
 import numpy as np
 from astropy.table import Table
@@ -16,28 +15,12 @@ import shutil
 APP_NAME = "dustmaps3d"
 DATA_VERSION = "v3"
 DATA_FILENAME = f"data_{DATA_VERSION}.fits"
-COMPRESSED_FILENAME = f"{DATA_FILENAME}.gz"
-
+GZ_FILENAME = f"{DATA_FILENAME}.gz"
 NADC_URL = "https://nadc.china-vo.org/res/file_upload/download?id=51931"
-GITHUB_URL = f"https://github.com/Grapeknight/dustmaps3d/releases/download/{DATA_VERSION}/{COMPRESSED_FILENAME}"
-
+GITHUB_URL = f"https://github.com/Grapeknight/dustmaps3d/releases/download/{DATA_VERSION}/{GZ_FILENAME}"
 LOCAL_DATA_PATH = Path(user_data_dir(APP_NAME)) / DATA_FILENAME
-LOCAL_GZ_PATH = LOCAL_DATA_PATH.with_suffix(".fits.gz")
+LOCAL_GZ_PATH = Path(user_data_dir(APP_NAME)) / GZ_FILENAME
 
-
-warnings.filterwarnings("ignore", category=RuntimeWarning, message="overflow encountered in exp")
-
-
-_HEALPIX = HEALPix(nside=1024, order='ring')
-
-
-class TqdmUpTo(tqdm):
-    def update_to(self, b=1, bsize=1, tsize=None):
-        if tsize is not None:
-            self.total = tsize
-        self.update(b * bsize - self.n)
-
-@lru_cache(maxsize=1)
 def load_data():
     def is_china_user():
         try:
@@ -59,6 +42,13 @@ def load_data():
             return "max_distance" in df.columns and df.shape[0] > 100_000
         except Exception as e:
             print(f"[dustmaps3d] Invalid FITS file: {e}")
+            return False
+
+    def is_valid_gzip(path):
+        try:
+            with open(path, 'rb') as f:
+                return f.read(2) == b'\x1f\x8b'
+        except Exception:
             return False
 
     def download_with_resume(url, path, max_retries=10, chunk_size=1024 * 1024):
@@ -101,11 +91,13 @@ def load_data():
 
     # === 主逻辑 ===
     if not LOCAL_DATA_PATH.exists() or not is_fits_valid(LOCAL_DATA_PATH):
-        print(f"[dustmaps3d] Downloading {DATA_FILENAME} (~400MB)...")
+        print(f"[dustmaps3d] Downloading {GZ_FILENAME} (~400MB)...")
         cleanup()
+
         primary_url = NADC_URL if is_china_user() else GITHUB_URL
         backup_url = GITHUB_URL if is_china_user() else NADC_URL
 
+        # 先试主源
         try:
             print("[dustmaps3d] Trying primary source...")
             download_with_resume(primary_url, LOCAL_GZ_PATH)
@@ -121,26 +113,32 @@ def load_data():
                     f"Primary: {e1}\nBackup: {e2}"
                 )
 
-        # 解压
+        # 解压前检查是否为合法 gzip 文件
+        if not is_valid_gzip(LOCAL_GZ_PATH):
+            cleanup()
+            raise RuntimeError(f"[dustmaps3d] ❌ Downloaded file is not a valid gzip file. Possibly an error page.")
+
+        # 解压 .gz 文件为 .fits
         try:
-            with gzip.open(LOCAL_GZ_PATH, 'rb') as f_in:
-                with open(LOCAL_DATA_PATH, 'wb') as f_out:
-                    shutil.copyfileobj(f_in, f_out)
+            print(f"[dustmaps3d] Extracting {LOCAL_GZ_PATH} ...")
+            with gzip.open(LOCAL_GZ_PATH, 'rb') as f_in, open(LOCAL_DATA_PATH, 'wb') as f_out:
+                shutil.copyfileobj(f_in, f_out)
             LOCAL_GZ_PATH.unlink()
             print(f"[dustmaps3d] ✅ Uncompressed to: {LOCAL_DATA_PATH}")
         except Exception as e:
             raise RuntimeError(f"[dustmaps3d] Failed to decompress file: {e}")
 
-        # 再验证一次
+        # 解压后再次验证
         if not is_fits_valid(LOCAL_DATA_PATH):
             cleanup()
             raise RuntimeError("[dustmaps3d] Downloaded file is still invalid after extraction.")
 
-    # 返回 DataFrame
+    # 读取
     return Table.read(LOCAL_DATA_PATH).to_pandas()
 
 
-
+warnings.filterwarnings("ignore", category=RuntimeWarning, message="overflow encountered in exp")
+_HEALPIX = HEALPix(nside=1024, order='ring')
 
 def bubble_diffuse(x,h,b_lim,diffuse_dust_rho,bubble): 
     span = 0.01
