@@ -2,7 +2,7 @@ from pathlib import Path
 from functools import lru_cache
 import pandas as pd
 import numpy as np
-import urllib.request
+from astropy.table import Table
 from tqdm import tqdm
 from platformdirs import user_data_dir
 from astropy_healpix import HEALPix
@@ -13,10 +13,17 @@ import requests
 warnings.filterwarnings("ignore", category=RuntimeWarning, message="overflow encountered in exp")
 
 APP_NAME = "dustmaps3d"
-DATA_VERSION = "v2.2"
-DATA_FILENAME = f"data_{DATA_VERSION}.parquet"
-DATA_URL = f"https://github.com/Grapeknight/dustmaps3d/releases/download/{DATA_VERSION}/{DATA_FILENAME}"
+DATA_VERSION = "v3"  # ← 可根据版本号调整
+DATA_FILENAME = f"data_{DATA_VERSION}.fits"        # ← 下载后解压出的文件
+DATA_FILENAME_GZ = DATA_FILENAME + ".gz"           # ← 云端存储的压缩文件名
+
+# 云端源（根据版本号动态设置）
+NADC_URL = f"https://nadc.china-vo.org/res/file_upload/download?id=51931"
+GITHUB_URL = f"https://github.com/Grapeknight/dustmaps3d/releases/download/{DATA_VERSION}/{DATA_FILENAME_GZ}"
+
+# 本地路径
 LOCAL_DATA_PATH = Path(user_data_dir(APP_NAME)) / DATA_FILENAME
+
 
 _HEALPIX = HEALPix(nside=1024, order='ring')
 
@@ -29,83 +36,105 @@ class TqdmUpTo(tqdm):
 
 @lru_cache(maxsize=1)
 def load_data():
-    def is_parquet_valid(path):
+    def is_china_user():
         try:
-            if path.stat().st_size < 100 * 1024 * 1024:
-                raise ValueError("File too small to be valid.")
-            with open(path, "rb") as f:
-                head = f.read(1024)
-                if b"<html" in head.lower():
-                    raise ValueError("File appears to be an HTML error page.")
-            pd.read_parquet(path, engine="fastparquet", columns=["max_distance"])
-            return True
-        except Exception as e:
-            print(f"[dustmaps3d] Detected corrupt or incomplete file: {e}")
+            lang, _ = locale.getdefaultlocale()
+            return lang and lang.startswith("zh")
+        except:
             return False
 
     def cleanup():
         for f in LOCAL_DATA_PATH.parent.glob("*"):
             try:
                 f.unlink()
-            except Exception as e:
-                print(f"[dustmaps3d] Failed to delete {f}: {e}")
+            except Exception:
+                pass
 
-    def download_with_resume(url, path, chunk_size=1024 * 1024, max_retries=10):
-        import time
+    def is_fits_valid(path):
+        try:
+            df = Table.read(path).to_pandas()
+            return "max_distance" in df.columns and df.shape[0] > 100_000
+        except Exception as e:
+            print(f"[dustmaps3d] Invalid FITS file: {e}")
+            return False
+
+    def download_with_resume(url, path, max_retries=10, chunk_size=1024 * 1024):
         path.parent.mkdir(parents=True, exist_ok=True)
-        temp_file = path.with_suffix(path.suffix + ".part")
+        temp_file = path.with_suffix(".part")
 
+        print(f"[dustmaps3d] Starting download from: {url}")
         for attempt in range(1, max_retries + 1):
             try:
-                existing_size = temp_file.stat().st_size if temp_file.exists() else 0
-                headers = {"Range": f"bytes={existing_size}-"} if existing_size > 0 else {}
+                existing = temp_file.stat().st_size if temp_file.exists() else 0
+                headers = {"Range": f"bytes={existing}-"} if existing else {}
 
-                with requests.get(url, stream=True, headers=headers, timeout=30) as response:
-                    if existing_size > 0 and response.status_code != 206:
-                        print("[dustmaps3d] Warning: server did not honor Range request. Restarting download.")
+                with requests.get(url, stream=True, headers=headers, timeout=30) as r:
+                    if existing and r.status_code != 206:
+                        print("[dustmaps3d] Server didn't support resume. Restarting.")
                         temp_file.unlink(missing_ok=True)
-                        return download_with_resume(url, path, chunk_size, max_retries)
+                        return download_with_resume(url, path, max_retries)
 
-                    total_size = int(response.headers.get("Content-Length", 0)) + existing_size
-
+                    total = int(r.headers.get("Content-Length", 0)) + existing
                     with open(temp_file, "ab") as f, tqdm(
-                        initial=existing_size,
-                        total=total_size,
-                        unit="B",
+                        initial=existing,
+                        total=total,
+                        unit='B',
                         unit_scale=True,
                         unit_divisor=1024,
                         desc=path.name,
                     ) as bar:
-                        for chunk in response.iter_content(chunk_size=chunk_size):
+                        for chunk in r.iter_content(chunk_size=chunk_size):
                             if chunk:
                                 f.write(chunk)
                                 bar.update(len(chunk))
                 break
             except Exception as e:
                 print(f"[dustmaps3d] Download failed (attempt {attempt}/{max_retries}): {e}")
-                time.sleep(2 ** attempt)
         else:
-            raise RuntimeError(f"[dustmaps3d] Download failed after {max_retries} attempts.")
+            raise RuntimeError("[dustmaps3d] Failed to download after multiple attempts.")
 
-        if path.exists():
-            path.unlink()
         temp_file.rename(path)
+        print(f"[dustmaps3d] ✅ Data has been saved to: {path}")
 
-    if not LOCAL_DATA_PATH.exists() or not is_parquet_valid(LOCAL_DATA_PATH):
-        print(f"[dustmaps3d] Downloading {DATA_FILENAME} with resume support (~400MB)...")
+    # === 主逻辑 ===
+    if not LOCAL_DATA_PATH.exists() or not is_fits_valid(LOCAL_DATA_PATH):
+        print(f"[dustmaps3d] Downloading {DATA_FILENAME} (~400MB)...")
         cleanup()
+        primary_url = NADC_URL if is_china_user() else GITHUB_URL
+        backup_url = GITHUB_URL if is_china_user() else NADC_URL
+
         try:
-            download_with_resume(DATA_URL, LOCAL_DATA_PATH)
+            print("[dustmaps3d] Trying primary source...")
+            download_with_resume(primary_url, LOCAL_GZ_PATH)
+        except Exception as e1:
+            print("[dustmaps3d] Primary source failed. Trying backup...")
+            cleanup()
+            try:
+                download_with_resume(backup_url, LOCAL_GZ_PATH)
+            except Exception as e2:
+                cleanup()
+                raise RuntimeError(
+                    f"[dustmaps3d] Failed to download from both sources.\n"
+                    f"Primary: {e1}\nBackup: {e2}"
+                )
+
+        # 解压
+        try:
+            with gzip.open(LOCAL_GZ_PATH, 'rb') as f_in:
+                with open(LOCAL_DATA_PATH, 'wb') as f_out:
+                    shutil.copyfileobj(f_in, f_out)
+            LOCAL_GZ_PATH.unlink()
+            print(f"[dustmaps3d] ✅ Uncompressed to: {LOCAL_DATA_PATH}")
         except Exception as e:
-            cleanup()
-            raise RuntimeError(f"[dustmaps3d] Failed to download {DATA_FILENAME}: {e}")
+            raise RuntimeError(f"[dustmaps3d] Failed to decompress file: {e}")
 
-        if not is_parquet_valid(LOCAL_DATA_PATH):
-            print("[dustmaps3d] File appears invalid even after download. Cleaning up and retrying...")
+        # 再验证一次
+        if not is_fits_valid(LOCAL_DATA_PATH):
             cleanup()
-            return load_data()
+            raise RuntimeError("[dustmaps3d] Downloaded file is still invalid after extraction.")
 
-    return pd.read_parquet(LOCAL_DATA_PATH, engine="fastparquet")
+    # 返回 DataFrame
+    return Table.read(LOCAL_DATA_PATH).to_pandas()
 
 
 

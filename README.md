@@ -22,7 +22,7 @@ pip install dustmaps3d
 ```
 
 **Note:** Installing the package does *not* include the data file.  
-The ~350 MB model data will be **automatically downloaded** from GitHub on **first use**.  
+The ~400 MB model data will be **automatically downloaded** from GitHub on **first use**.  
 ⚠️ If you experience network issues when downloading from GitHub,  
 you can manually download the data from NADC:  
 🔗 https://nadc.china-vo.org/res/r101619/
@@ -106,7 +106,7 @@ Estimates 3D dust extinction and related quantities for given galactic coordinat
 
 ## 📂 Data Version
 
-This version uses `data_v2.2.parquet`, released under [v2.2](https://github.com/Grapeknight/dustmaps3d/releases/tag/v2.2)
+This version uses `data_v3.parquet`, released under [v2.2](https://github.com/Grapeknight/dustmaps3d/releases/tag/v2.2)
 
 ---
 

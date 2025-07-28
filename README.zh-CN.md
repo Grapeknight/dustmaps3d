@@ -106,7 +106,7 @@ data.write('output.fits', overwrite=True)
 
 ## 📂 数据版本
 
-当前版本使用数据文件：`data_v2.2.parquet`，来自发布版本 [v2.2](https://github.com/Grapeknight/dustmaps3d/releases/tag/v2.2)
+当前版本使用数据文件：`data_v3.fits`，来自发布版本 [v2.2](https://github.com/Grapeknight/dustmaps3d/releases/tag/v2.2)
 
 ---
 
