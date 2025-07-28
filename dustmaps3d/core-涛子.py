@@ -26,6 +26,18 @@ LOCAL_GZ_PATH = LOCAL_DATA_PATH.with_suffix(".fits.gz")
 
 warnings.filterwarnings("ignore", category=RuntimeWarning, message="overflow encountered in exp")
 
+APP_NAME = "dustmaps3d"
+DATA_VERSION = "v3"  # ← 可根据版本号调整
+DATA_FILENAME = f"data_{DATA_VERSION}.fits"        # ← 下载后解压出的文件
+DATA_FILENAME_GZ = DATA_FILENAME + ".gz"           # ← 云端存储的压缩文件名
+
+# 云端源（根据版本号动态设置）
+NADC_URL = f"https://nadc.china-vo.org/res/file_upload/download?id=51931"
+GITHUB_URL = f"https://github.com/Grapeknight/dustmaps3d/releases/download/{DATA_VERSION}/{DATA_FILENAME_GZ}"
+
+# 本地路径
+LOCAL_DATA_PATH = Path(user_data_dir(APP_NAME)) / DATA_FILENAME
+
 
 _HEALPIX = HEALPix(nside=1024, order='ring')
 
