@@ -11,6 +11,7 @@ import warnings
 import requests
 import locale
 import gzip
+import shutil
 
 APP_NAME = "dustmaps3d"
 DATA_VERSION = "v3"

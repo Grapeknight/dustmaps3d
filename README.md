@@ -21,11 +21,37 @@ Install via pip:
 pip install dustmaps3d
 ```
 
-**Note:** Installing the package does *not* include the data file.  
-The ~400 MB model data will be **automatically downloaded** from GitHub on **first use**.  
-⚠️ If you experience network issues when downloading from GitHub,  
-you can manually download the data from NADC:  
-🔗 https://nadc.china-vo.org/res/r101619/
+## 📦 Data File Notice
+
+> ⚠️ The package **does not include the data file**. Upon first use, a ~400MB model file will be automatically downloaded from GitHub or the NADC mirror.
+
+### 🚀 Automatic Download Mechanism
+
+- When `dustmaps3d()` is called, the package will attempt to download the file `data_v3.fits.gz`;
+- After the download, the file will be automatically decompressed into `data_v3.fits` and cached locally;
+- Subsequent calls will directly load from the cache without re-downloading.
+
+### 🌐 What If the Download Fails?
+
+If you're outside China, the default download source is GitHub. However, network issues (like `connect timeout`) may still occur. The package supports fallback to an alternative mirror:
+
+- ✅ **Primary source** (international users): [GitHub Releases](https://github.com/Grapeknight/dustmaps3d/releases)
+- 🌀 **Backup source** (Chinese mirror): NADC (currently under review, coming soon)
+
+If both sources fail, you can manually download the data file.
+
+### 📥 Manual Download (Recommended for Chinese Users)
+
+1. Visit the mirror link (coming soon)
+2. Download the file: `data_v3.fits.gz`
+3. Decompress it into `data_v3.fits`
+4. Place the file in the local cache directory (the location will be printed the first time you run the package)
+
+> Example path on Windows:  
+> `C:\Users\<username>\AppData\Local\dustmaps3d\data_v3.fits`
+
+> Example path on Linux/macOS:  
+> `/home/<username>/.local/share/dustmaps3d/data_v3.fits`
 
 ---
 
@@ -104,11 +130,6 @@ Estimates 3D dust extinction and related quantities for given galactic coordinat
 
 ---
 
-## 📂 Data Version
-
-This version uses `data_v3.parquet`, released under [v2.2](https://github.com/Grapeknight/dustmaps3d/releases/tag/v2.2)
-
----
 
 ## 📜 Citation
 
