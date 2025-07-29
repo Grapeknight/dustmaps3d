@@ -97,6 +97,17 @@ data['max_distance'] = max_d
 data.write('output.fits', overwrite=True)
 ```
 
+## ⚙️ Tips for Advanced Users
+
+To ensure broad compatibility and ease of use, the official `dustmaps3d` package makes certain design trade-offs that may come at the cost of peak performance.
+
+If you have higher performance needs — such as support for multi-processing, command-line usage, or faster data loading and I/O — consider using the alternative implementation by [SunnyHina](https://github.com/SunnyHina):
+
+👉 High-performance version: [SunnyHina/dustmaps3d](https://github.com/SunnyHina/dustmaps3d)
+
+This version adopts a more modern data loading architecture and is better suited for advanced users working with large-scale or batch processing workflows.
+
+
 ---
 
 

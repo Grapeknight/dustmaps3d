@@ -98,6 +98,16 @@ data.write('output.fits', overwrite=True)
 
 ```
 
+## ⚙️ 进阶用户提示
+
+为了兼容性和易用性，本 dustmaps3d 做了一定的优化权衡，牺牲了部分性能以确保广泛环境下的稳定运行。
+
+如果您对性能有更高要求（如支持多进程并行计算、通过命令行使用、更快的加载和 I/O 速度等），欢迎尝试由开发者 [SunnyHina](https://github.com/SunnyHina) 提供的实现：
+
+👉 高性能版本地址：[SunnyHina/dustmaps3d](https://github.com/SunnyHina/dustmaps3d)
+
+该版本采用更加现代化的数据加载方案，适合需要大规模批量处理的高级用户。
+
 ---
 ## 🧠 函数说明
 
