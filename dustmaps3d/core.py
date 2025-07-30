@@ -290,11 +290,6 @@ def read_map(df):
 
 
 
-def _dustmaps3d_worker(args):
-    l_chunk, b_chunk, d_chunk = args
-    results = [dustmaps3d(l, b, d) for l, b, d in zip(l_chunk, b_chunk, d_chunk)]
-    return list(zip(*results))  # (EBV, dust, sigma, max_d)
-
 def dustmaps3d(l, b, d):
     """
     3D dust map (Wang et al. 2025).
