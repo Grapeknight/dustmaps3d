@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "dustmaps3d"
-version = "2.2.6"
+version = "2.2.7"
 description = "An all-sky 3D dust map based on Gaia and LAMOST."
 readme = "README.md"
 requires-python = ">=3.7.1"

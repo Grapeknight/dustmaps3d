@@ -277,15 +277,33 @@ def read_map(df):
                     df['distance_2'], df['span_2'], df['Cum_EBV_2'],
                     df['distance_3'], df['span_3'], df['Cum_EBV_3'],
                     df['distance_4'], df['span_4'], df['Cum_EBV_4']) 
-    sigma_finally = np.empty_like(df['sigma'], dtype=float)
+    sigma_finally = np.empty_like(df['sigma'].values, dtype=float)
     mask = distance < 1
-    sigma_finally[mask] = np.nanmin(np.array([df['sigma'][mask], df['sigma_0_2'][mask]]), axis=0)
+    if np.any(mask):
+        sigma_finally[mask.values] = np.nanmin(np.array([df['sigma'][mask].values, df['sigma_0_2'][mask].values]), axis=0)
     mask = (distance >= 1) & (distance < 2)
-    sigma_finally[mask] = np.nanmin(np.array([df['sigma'][mask], df['sigma_0_2'][mask], df['sigma_1_4'][mask]]), axis=0)
+    if np.any(mask):
+        sigma_finally[mask.values] = np.nanmin(np.array([df['sigma'][mask].values, df['sigma_0_2'][mask].values, df['sigma_1_4'][mask].values]), axis=0)
     mask = (distance >= 2) & (distance < 4)
-    sigma_finally[mask] = np.nanmin(np.array([df['sigma_1_4'][mask], df['sigma_2_max'][mask]]), axis=0)
+    if np.any(mask):
+        primary_sigma = np.nanmin(np.array([df['sigma_1_4'][mask].values, df['sigma_2_max'][mask].values]), axis=0)
+        fallback_sigma = df['sigma'][mask].values
+        sigma_finally[mask.values] = np.where(np.isnan(primary_sigma), fallback_sigma, primary_sigma)
     mask = distance >= 4
-    sigma_finally[mask] = df['sigma_2_max'][mask]
+    if np.any(mask):
+        primary_sigma = df['sigma_2_max'][mask].values
+        fallback_sigma = df['sigma'][mask].values
+        sigma_finally[mask.values] = np.where(np.isnan(primary_sigma), fallback_sigma, primary_sigma)
+    # sigma_finally = np.empty_like(df['sigma'], dtype=float)
+    # mask = distance < 1
+    # sigma_finally[mask] = np.nanmin(np.array([df['sigma'][mask], df['sigma_0_2'][mask]]), axis=0)
+    # mask = (distance >= 1) & (distance < 2)
+    # sigma_finally[mask] = np.nanmin(np.array([df['sigma'][mask], df['sigma_0_2'][mask], df['sigma_1_4'][mask]]), axis=0)
+    # mask = (distance >= 2) & (distance < 4)
+    # sigma_finally[mask] = np.nanmin(np.array([df['sigma_1_4'][mask], df['sigma_2_max'][mask]]), axis=0)
+    # mask = distance >= 4
+    # sigma_finally[mask] = df['sigma_2_max'][mask]
+
     return EBV, dust, pd.Series(sigma_finally, index=df.index), df['max_distance']
 
 
