@@ -294,15 +294,6 @@ def read_map(df):
         primary_sigma = df['sigma_2_max'][mask].values
         fallback_sigma = df['sigma'][mask].values
         sigma_finally[mask.values] = np.where(np.isnan(primary_sigma), fallback_sigma, primary_sigma)
-    # sigma_finally = np.empty_like(df['sigma'], dtype=float)
-    # mask = distance < 1
-    # sigma_finally[mask] = np.nanmin(np.array([df['sigma'][mask], df['sigma_0_2'][mask]]), axis=0)
-    # mask = (distance >= 1) & (distance < 2)
-    # sigma_finally[mask] = np.nanmin(np.array([df['sigma'][mask], df['sigma_0_2'][mask], df['sigma_1_4'][mask]]), axis=0)
-    # mask = (distance >= 2) & (distance < 4)
-    # sigma_finally[mask] = np.nanmin(np.array([df['sigma_1_4'][mask], df['sigma_2_max'][mask]]), axis=0)
-    # mask = distance >= 4
-    # sigma_finally[mask] = df['sigma_2_max'][mask]
 
     return EBV, dust, pd.Series(sigma_finally, index=df.index), df['max_distance']
 

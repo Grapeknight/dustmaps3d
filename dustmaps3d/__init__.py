@@ -1,4 +1,4 @@
 from .core import dustmaps3d
 
-__version__ = '2.2.7'
+__version__ = '2.2.13'
 __all__ = ['dustmaps3d']
