@@ -168,21 +168,21 @@ df.to_csv("output.csv", index=False)
 
 # 红化系数（Reddening Coefficient）
 
-在获得 $ E(B-V) $ 后，通常需要对观测到的星等或色指数进行消光校正（红化修正），以恢复恒星的内禀光度或颜色。对于任意波段的消光校正或色指数的红化修正，关键在于确定该波段或颜色对应的红化系数 $ R_\lambda $。
+在获得 $E(B-V)$ 后，通常需要对观测到的星等或色指数进行消光校正（红化修正），以恢复恒星的内禀光度或颜色。对于任意波段的消光校正或色指数的红化修正，关键在于确定该波段或颜色对应的红化系数 $R_\lambda$。
 
 ## 红化修正公式
 
-对某一观测波段或色指数 $ \lambda_{\text{obs}} $ 进行消光校正，其内禀亮度或颜色 $ \lambda_0 $ 可通过下式计算：
+对某一观测波段或色指数 $\lambda_{\text{obs}}$ 进行消光校正，其内禀亮度或颜色 $\lambda_0$ 可通过下式计算：
 
 $$
 \lambda_0 = \lambda_{\text{obs}} - R_\lambda \cdot E(B-V)
 $$
 
 其中：
-- $ \lambda_{\text{obs}} $：观测得到的视星等或色指数；
-- $ R_\lambda $：该波段或色指数相对于 $ E(B-V) $ 的红化系数。
+- $\lambda_{\text{obs}}$：观测得到的视星等或色指数；
+- $R_\lambda$：该波段或色指数相对于 $ E(B-V) $ 的红化系数。
 
-> **注意**：对于色指数（如 $ G_{\rm BP}-G_{\rm RP} $），应使用对应色指数的红化系数 $ R_{\text{BP-RP}} $，而非单个波段的 $ R_\lambda $。这里的 $ R_\lambda $ 作为通用符号表示任意波段或颜色的红化系数。
+> **注意**：对于色指数（如 $G_{\rm BP}-G_{\rm RP}$），应使用对应色指数的红化系数 $ R_{\text{BP-RP}} $，而非单个波段的 $R_\lambda$。这里的 $R_\lambda$ 作为通用符号表示任意波段或颜色的红化系数。
 
 ## 推荐红化系数来源：Zhang et al. (2024)
 
@@ -192,12 +192,12 @@ $$
 - 💻 工具包地址：[https://github.com/vnohhf/XP_Extinction_Toolkit](https://github.com/vnohhf/XP_Extinction_Toolkit)
 
 ### 工具包核心功能函数：
-- `star_ext(wavelength_or_band)`：计算指定波长或测光波段的红化系数 $ R_\lambda $
-- `star_reddening(color_index)`：计算指定色指数（如 `'BP-RP'`）的红化系数 $ R_{\text{color}} $
+- `star_ext(wavelength_or_band)`：计算指定波长或测光波段的红化系数 $R_\lambda$
+- `star_reddening(color_index)`：计算指定色指数（如 `'BP-RP'`）的红化系数 $R_{\text{color}}$
 
 ## 快速查询工具
 
-若仅需快速估算某一波段或色指数的红化系数，我们提供一个基于 Zhang et al. (2024) 数据的在线查询工具，用户可输入波长、波段名称或色指数，即时获取对应的 $ R_\lambda $ 或 $ R_{\text{color}} $ 值。
+若仅需快速估算某一波段或色指数的红化系数，我们提供一个基于 Zhang et al. (2024) 数据的在线查询工具，用户可输入波长、波段名称或色指数，即时获取对应的 $R_\lambda$ 或 $R_{\text{color}}$ 值。
 
 🌐 在线红化系数查询：  
 [https://nadc.china-vo.org/data/dustmaps/](https://nadc.china-vo.org/data/dustmaps/)
