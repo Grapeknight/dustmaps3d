@@ -167,41 +167,13 @@ Estimates 3D dust extinction and related quantities for given galactic coordinat
 - On a modern personal computer, evaluating **100 million stars takes only ~100 seconds**
 
 ---
+
 # Reddening Coefficient
 
-After obtaining $E(B-V)$, it is often necessary to apply extinction (reddening) corrections to the observed magnitudes or color indices in order to recover the intrinsic luminosity or color of a star. For extinction correction in any band or reddening correction of any color index, the key quantity is the reddening coefficient $R_\lambda$ for that band or color.
+After obtaining $E(B-V)$, it is usually necessary to correct the observed magnitudes or color indices for extinction (reddening correction) in order to recover the intrinsic luminosity or color of stars.  
+For extinction correction in any photometric band or reddening correction of any color index, the key is to determine the corresponding reddening coefficient $R_\lambda$ or $R_(a-b)$.
 
-## Reddening–correction formula
-
-To de-redden an observed band or color index $\lambda_{\text{obs}}$, the intrinsic value $\lambda_0$ is computed as
-$$
-\lambda_0 = \lambda_{\text{obs}} - R_\lambda \cdot E(B-V),
-$$
-where
-- $\lambda_{\text{obs}}$: the observed apparent magnitude or color index;
-- $R_\lambda$: the reddening coefficient of the band or color relative to $E(B-V)$.
-
-> **Note.** For a color index (e.g., $G_{\rm BP}-G_{\rm RP}$), you should use the reddening coefficient for that color, $R_{\text{BP-RP}}$, rather than the single-band $R_\lambda$. Here, $R_\lambda$ is used as a generic symbol for the reddening coefficient of any band or color.
-
-## Recommended source of reddening coefficients: Zhang et al. (2024)
-
-**Zhang et al. (2024)** directly measured the Galactic extinction curve using Gaia DR3 and LAMOST DR7 Gaia XP spectra for roughly **5 million cross-matched sources**, and constructed a Galactic mean extinction curve from about **370,000 high-quality spectra** via a stellar-pair method. They provide the **XP_Extinction_Toolkit**, which enables precise computation of reddening coefficients for arbitrary bands or color indices based on the empirically derived extinction curve.
-
-- 📚 Paper: [Zhang et al. (2024), ApJ, 972, 207](https://iopscience.iop.org/article/10.3847/1538-4357/ad613e)
-- 💻 Toolkit: [https://github.com/vnohhf/XP_Extinction_Toolkit](https://github.com/vnohhf/XP_Extinction_Toolkit)
-
-### Core functions in the toolkit
-- `star_ext(wavelength_or_band)`: computes the reddening coefficient $R_\lambda$ for a specified wavelength or photometric band.
-- `star_reddening(color_index)`: computes the reddening coefficient $R_{\text{color}}$ for a specified color index (e.g., `'BP-RP'`).
-
-## Quick lookup tool
-
-For a rapid estimate of the reddening coefficient for a given band or color index, an online query service based on the Zhang et al. (2024) extinction curve is available. Users can input a wavelength, band name, or color index to obtain the corresponding $R_\lambda$ or $R_{\text{color}}$.
-
-🌐 Online reddening-coefficient query:  
-[https://nadc.china-vo.org/data/dustmaps/](https://nadc.china-vo.org/data/dustmaps/)
-
-> This service is provided by the National Astronomical Data Center (NADC) of the China-VO, with data derived from the Galactic mean extinction curve in Zhang et al. (2024).
+We provide a detailed explanation of how to obtain reddening coefficients on the [3D Dust Map Platform](https://nadc.china-vo.org/data/dustmaps/), along with an online calculator that allows users to quickly compute the required coefficients by simply entering the input parameters.
 
 ## 📜 Citation
 
