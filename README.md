@@ -5,11 +5,11 @@
 
 🌌 **An all-sky 3D dust extinction map based on Gaia and LAMOST**
 
+🌐 **Online Access**  
+👉 [Explore the 3D Interstellar Dust Map](https://nadc.china-vo.org/data/dustmaps/)  
+
 📄 *Wang et al. (2025),* *An all-sky 3D dust map based on Gaia and LAMOST*  
 📌 DOI: DOI: [10.3847/1538-4365/adea39](https://doi.org/10.3847/1538-4365/adea39)
-
-📦 *A Python package for easy access to the 3D dust map*  
-📌 DOI: [10.12149/101619](https://nadc.china-vo.org/res/r101619/)
 
 ---
 
